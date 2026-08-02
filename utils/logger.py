@@ -1,5 +1,7 @@
 import discord
 
+from utils.data_manager import get_log_channel_id
+
 
 async def send_log(
     bot,
@@ -11,20 +13,47 @@ async def send_log(
     """
     Gửi log vào kênh log của server.
 
-    Hiện tại dùng tên kênh:
-    #astrix-logs
+    Thứ tự ưu tiên tìm kênh log:
+    1. Kênh đã được đặt qua lệnh /setlog (lưu trong data/guild_settings.json)
+    2. Kênh có tên mặc định trong config.json (log.channel_name)
     """
 
     if guild is None:
         return
 
-    # Tìm kênh log
-    log_channel = discord.utils.get(
-        guild.text_channels,
-        name="astrix-logs"
-    )
+    log_channel = None
 
-    # Nếu chưa có kênh log thì bỏ qua
+    # -----------------------------------------------------
+    # 1. KÊNH ĐÃ ĐƯỢC CẤU HÌNH RIÊNG CHO SERVER
+    # -----------------------------------------------------
+
+    channel_id = get_log_channel_id(guild.id)
+
+    if channel_id is not None:
+        channel = guild.get_channel(channel_id)
+
+        if isinstance(channel, discord.TextChannel):
+            log_channel = channel
+
+    # -----------------------------------------------------
+    # 2. FALLBACK: TÊN KÊNH MẶC ĐỊNH TỪ config.json
+    # -----------------------------------------------------
+
+    if log_channel is None:
+        default_name = "astrix-logs"
+        config = getattr(bot, "config", None)
+
+        if config:
+            default_name = config.get("log", {}).get(
+                "channel_name", default_name
+            )
+
+        log_channel = discord.utils.get(
+            guild.text_channels,
+            name=default_name
+        )
+
+    # Nếu vẫn không tìm thấy kênh log thì bỏ qua
     if log_channel is None:
         return
 

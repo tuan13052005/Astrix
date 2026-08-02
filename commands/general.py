@@ -68,7 +68,10 @@ class General(commands.Cog):
                 "`/ban` — Ban thành viên\n"
                 "`/mute` — Timeout thành viên\n"
                 "`/unmute` — Gỡ timeout\n"
-                "`/warn` — Cảnh cáo thành viên"
+                "`/warn` — Cảnh cáo thành viên\n"
+                "`/warnings` — Xem cảnh cáo của thành viên\n"
+                "`/delwarn` — Xóa một cảnh cáo\n"
+                "`/clearwarnings` — Xóa toàn bộ cảnh cáo"
             ),
             inline=False
         )
@@ -76,7 +79,8 @@ class General(commands.Cog):
         embed.add_field(
             name="📋 Hệ thống",
             value=(
-                "`/setlog` — Đặt kênh log"
+                "`/setlog` — Đặt kênh log\n"
+                "`/viewlog` — Xem kênh log hiện tại"
             ),
             inline=False
         )

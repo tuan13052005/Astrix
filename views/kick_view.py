@@ -1,5 +1,7 @@
 import discord
 
+from utils.logger import send_log
+
 
 class KickApprovalView(discord.ui.View):
 
@@ -7,9 +9,10 @@ class KickApprovalView(discord.ui.View):
         self,
         target: discord.Member,
         requester: discord.Member,
-        reason: str
+        reason: str,
+        timeout: int = 300
     ):
-        super().__init__(timeout=300)
+        super().__init__(timeout=timeout)
 
         self.target = target
         self.requester = requester
@@ -171,6 +174,19 @@ class KickApprovalView(discord.ui.View):
             view=None
         )
 
+        await send_log(
+            interaction.client,
+            guild,
+            title="✅ Kick đã được duyệt",
+            description=(
+                f"**Thành viên:** {self.target.mention} (`{self.target.id}`)\n"
+                f"**Người yêu cầu:** {self.requester.mention}\n"
+                f"**Người duyệt:** {interaction.user.mention}\n"
+                f"**Lý do:** {self.reason}"
+            ),
+            color=discord.Color.green()
+        )
+
         self.stop()
 
     # =====================================================
@@ -224,6 +240,18 @@ class KickApprovalView(discord.ui.View):
             content=None,
             embed=embed,
             view=None
+        )
+
+        await send_log(
+            interaction.client,
+            interaction.guild,
+            title="❌ Yêu cầu kick bị từ chối",
+            description=(
+                f"**Thành viên:** {self.target.mention} (`{self.target.id}`)\n"
+                f"**Người yêu cầu:** {self.requester.mention}\n"
+                f"**Người từ chối:** {interaction.user.mention}"
+            ),
+            color=discord.Color.red()
         )
 
         self.stop()
