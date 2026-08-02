@@ -1,0 +1,18 @@
+{
+    "bot_name": "Astrix",
+    "version": "2.0.0",
+
+    "log": {
+        "enabled": true,
+        "channel_name": "astrix-logs"
+    },
+
+    "moderation": {
+        "kick_requires_owner_approval": true,
+        "kick_request_timeout": 300
+    },
+
+    "embed": {
+        "color": 5793266
+    }
+}
