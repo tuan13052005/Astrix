@@ -5,6 +5,7 @@ from discord.ext import commands
 from utils import checks
 from utils.embeds import branded_embed
 from utils.music_manager import MusicManager
+from views.music_view import MusicControlView, build_panel_embed
 from utils.data_manager import (
     get_dj_role_id,
     set_dj_role_id,
@@ -17,6 +18,11 @@ class Music(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.manager = MusicManager(bot)
+
+        # Đăng ký view "trần" ngay khi cog load, để các nút trên
+        # bảng điều khiển vẫn hoạt động kể cả sau khi bot restart
+        # (custom_id cố định giúp discord.py định tuyến đúng).
+        self.bot.add_view(MusicControlView(self.manager))
 
     # =====================================================
     # KIỂM TRA: NGƯỜI DÙNG CÓ ĐANG Ở TRONG VOICE CHANNEL KHÔNG
@@ -96,6 +102,7 @@ class Music(commands.Cog):
         state.clear()
         await state.voice_client.disconnect()
         state.voice_client = None
+        state.panel_message = None
         self.manager.remove_state(interaction.guild.id)
 
         await interaction.response.send_message("👋 Đã rời kênh thoại.")
@@ -155,14 +162,35 @@ class Music(commands.Cog):
         if state.voice_client.is_playing() or state.voice_client.is_paused():
             await interaction.followup.send(
                 f"➕ Đã thêm vào hàng đợi: **{track.title}** "
-                f"(`{track.duration_text}`)"
+                f"(`{track.duration_text}`)",
+                ephemeral=True
             )
         else:
             await interaction.followup.send(
-                f"🎶 Chuẩn bị phát: **{track.title}** "
-                f"(`{track.duration_text}`)"
+                f"🎶 Đang chuẩn bị phát **{track.title}**...",
+                ephemeral=True
             )
             await state.play_next()
+
+    # =====================================================
+    # /MUSICPANEL — GỌI BẢNG ĐIỀU KHIỂN
+    # =====================================================
+
+    @app_commands.command(
+        name="musicpanel",
+        description="Hiện bảng điều khiển nhạc (nút bấm play/skip/volume...)"
+    )
+    @checks.guild_only()
+    async def musicpanel(self, interaction: discord.Interaction):
+
+        state = self.manager.get_state(interaction.guild.id)
+        state.text_channel = interaction.channel
+
+        embed = build_panel_embed(self.bot, state)
+        view = MusicControlView(self.manager)
+
+        await interaction.response.send_message(embed=embed, view=view)
+        state.panel_message = await interaction.original_response()
 
     # =====================================================
     # /SKIP
@@ -267,6 +295,7 @@ class Music(commands.Cog):
             await state.voice_client.disconnect()
 
         state.voice_client = None
+        state.panel_message = None
         self.manager.remove_state(interaction.guild.id)
 
         await interaction.response.send_message(
@@ -484,7 +513,8 @@ class Music(commands.Cog):
 
         await interaction.response.send_message(
             f"✅ Từ giờ chỉ thành viên có role {role.mention} "
-            f"(hoặc admin) mới dùng được lệnh nhạc."
+            f"(hoặc admin) mới dùng được lệnh nhạc và các nút trên "
+            f"bảng điều khiển."
         )
 
     @app_commands.command(
