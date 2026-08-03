@@ -54,10 +54,18 @@ class Music(commands.Cog):
 
         state = self.manager.get_state(interaction.guild.id)
 
-        if state.voice_client is None or not state.voice_client.is_connected():
-            state.voice_client = await channel.connect()
-        else:
-            await state.voice_client.move_to(channel)
+        try:
+            if state.voice_client is None or not state.voice_client.is_connected():
+                state.voice_client = await channel.connect()
+            else:
+                await state.voice_client.move_to(channel)
+        except Exception as error:
+            await interaction.response.send_message(
+                f"❌ Không thể kết nối kênh thoại.\n"
+                f"Chi tiết lỗi: `{type(error).__name__}: {error}`",
+                ephemeral=True
+            )
+            return
 
         state.text_channel = interaction.channel
 
@@ -125,7 +133,14 @@ class Music(commands.Cog):
                 )
                 return
 
-            state.voice_client = await channel.connect()
+            try:
+                state.voice_client = await channel.connect()
+            except Exception as error:
+                await interaction.followup.send(
+                    f"❌ Không thể kết nối kênh thoại.\n"
+                    f"Chi tiết lỗi: `{type(error).__name__}: {error}`"
+                )
+                return
 
         state.text_channel = interaction.channel
 
