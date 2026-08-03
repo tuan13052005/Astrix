@@ -4,6 +4,7 @@ from discord.ext import commands
 
 from utils import checks
 from utils.data_manager import get_log_channel_id, set_guild_setting
+from utils.embeds import branded_embed
 
 
 class System(commands.Cog):
@@ -36,7 +37,8 @@ class System(commands.Cog):
             channel.id
         )
 
-        embed = discord.Embed(
+        embed = branded_embed(
+            self.bot,
             title="✅ Đã đặt kênh log",
             description=f"Log kiểm duyệt sẽ được gửi vào {channel.mention}.",
             color=discord.Color.green()
@@ -74,10 +76,10 @@ class System(commands.Cog):
                 "`#astrix-logs` theo mặc định."
             )
 
-        embed = discord.Embed(
+        embed = branded_embed(
+            self.bot,
             title="📋 Kênh Log Hiện Tại",
-            description=value,
-            color=discord.Color.blurple()
+            description=value
         )
 
         await interaction.response.send_message(

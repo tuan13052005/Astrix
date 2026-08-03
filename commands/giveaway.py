@@ -8,6 +8,7 @@ from discord import app_commands
 from discord.ext import commands, tasks
 
 from utils import checks
+from utils.embeds import branded_embed
 from utils.data_manager import (
     create_giveaway,
     get_giveaway,
@@ -131,7 +132,8 @@ class Giveaway(commands.Cog):
 
         end_time = time.time() + seconds
 
-        embed = discord.Embed(
+        embed = branded_embed(
+            self.bot,
             title="🎉 GIVEAWAY 🎉",
             description=(
                 f"**Phần thưởng:** {prize}\n"
@@ -219,7 +221,8 @@ class Giveaway(commands.Cog):
         winner_ids = random.sample(participants, winners_count)
         mentions = ", ".join(f"<@{uid}>" for uid in winner_ids)
 
-        embed = discord.Embed(
+        embed = branded_embed(
+            self.bot,
             title="🎊 Giveaway đã kết thúc!",
             description=(
                 f"**Phần thưởng:** {entry['prize']}\n"

@@ -2,6 +2,142 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 
+from utils.embeds import branded_embed
+
+
+CATEGORIES = {
+    "utility": {
+        "label": "🛠️ Tiện ích",
+        "emoji": "🛠️",
+        "description": "Lệnh cơ bản, thông tin server & người dùng",
+        "commands": (
+            "`/ping` — Kiểm tra bot\n"
+            "`/userinfo` — Thông tin người dùng\n"
+            "`/avatar` — Xem avatar\n"
+            "`/serverinfo` — Thông tin server"
+        )
+    },
+    "moderation": {
+        "label": "🛡️ Quản trị",
+        "emoji": "🛡️",
+        "description": "Kiểm duyệt, cảnh cáo, kick/ban thành viên",
+        "commands": (
+            "`/clear` — Xóa tin nhắn\n"
+            "`/kick` — Yêu cầu kick thành viên\n"
+            "`/ban` — Ban thành viên\n"
+            "`/mute` — Timeout thành viên\n"
+            "`/unmute` — Gỡ timeout\n"
+            "`/warn` — Cảnh cáo thành viên\n"
+            "`/warnings` — Xem cảnh cáo của thành viên\n"
+            "`/delwarn` — Xóa một cảnh cáo\n"
+            "`/clearwarnings` — Xóa toàn bộ cảnh cáo"
+        )
+    },
+    "system": {
+        "label": "📋 Hệ thống",
+        "emoji": "📋",
+        "description": "Cấu hình kênh log của Astrix",
+        "commands": (
+            "`/setlog` — Đặt kênh log\n"
+            "`/viewlog` — Xem kênh log hiện tại"
+        )
+    },
+    "welcome": {
+        "label": "👋 Welcome / Auto-role",
+        "emoji": "👋",
+        "description": "Lời chào mừng, tạm biệt, tự động gán role",
+        "commands": (
+            "`/setwelcome` — Đặt lời chào mừng\n"
+            "`/disablewelcome` — Tắt lời chào mừng\n"
+            "`/setgoodbye` — Đặt lời tạm biệt\n"
+            "`/disablegoodbye` — Tắt lời tạm biệt\n"
+            "`/setautorole` — Tự động gán role\n"
+            "`/disableautorole` — Tắt auto-role"
+        )
+    },
+    "automod": {
+        "label": "🤖 Auto-Moderation",
+        "emoji": "🤖",
+        "description": "Tự động lọc từ cấm và link/invite spam",
+        "commands": (
+            "`/automod enable` — Bật auto-moderation\n"
+            "`/automod disable` — Tắt auto-moderation\n"
+            "`/automod blocklinks` — Bật/tắt chặn link\n"
+            "`/automod addword` — Thêm từ cấm\n"
+            "`/automod removeword` — Xóa từ cấm\n"
+            "`/automod status` — Xem trạng thái"
+        )
+    },
+    "fun": {
+        "label": "🎉 Poll / Giveaway",
+        "emoji": "🎉",
+        "description": "Bình chọn và tổ chức giveaway",
+        "commands": (
+            "`/poll` — Tạo bình chọn (tối đa 5 lựa chọn)\n"
+            "`/giveaway` — Tạo giveaway, tự động quay số"
+        )
+    },
+    "reminder": {
+        "label": "⏰ Nhắc nhở",
+        "emoji": "⏰",
+        "description": "Đặt và quản lý nhắc nhở cá nhân",
+        "commands": (
+            "`/remind` — Đặt nhắc nhở\n"
+            "`/reminders` — Xem danh sách nhắc nhở\n"
+            "`/delremind` — Hủy nhắc nhở"
+        )
+    },
+}
+
+
+class HelpSelect(discord.ui.Select):
+
+    def __init__(self, bot):
+        self.bot = bot
+
+        options = [
+            discord.SelectOption(
+                label=data["label"],
+                value=key,
+                description=data["description"],
+                emoji=data["emoji"]
+            )
+            for key, data in CATEGORIES.items()
+        ]
+
+        super().__init__(
+            placeholder="📂 Chọn một danh mục lệnh...",
+            options=options,
+            min_values=1,
+            max_values=1
+        )
+
+    async def callback(self, interaction: discord.Interaction):
+
+        data = CATEGORIES[self.values[0]]
+
+        embed = branded_embed(
+            self.bot,
+            title=f"{data['label']}",
+            description=data["commands"]
+        )
+
+        if self.bot.user:
+            embed.set_thumbnail(url=self.bot.user.display_avatar.url)
+
+        await interaction.response.edit_message(embed=embed, view=self.view)
+
+
+class HelpView(discord.ui.View):
+
+    def __init__(self, bot):
+        super().__init__(timeout=180)
+        self.add_item(HelpSelect(bot))
+
+    async def on_timeout(self):
+        for item in self.children:
+            item.disabled = True
+
 
 class General(commands.Cog):
 
@@ -21,14 +157,15 @@ class General(commands.Cog):
         interaction: discord.Interaction
     ):
 
-        latency = round(
-            self.bot.latency * 1000
+        latency = round(self.bot.latency * 1000)
+
+        embed = branded_embed(
+            self.bot,
+            title="🏓 Pong!",
+            description=f"⚡ Độ trễ: `{latency}ms`"
         )
 
-        await interaction.response.send_message(
-            f"🏓 **Pong!**\n"
-            f"⚡ Độ trễ: `{latency}ms`"
-        )
+        await interaction.response.send_message(embed=embed)
 
     # =====================================================
     # /HELP
@@ -43,98 +180,27 @@ class General(commands.Cog):
         interaction: discord.Interaction
     ):
 
-        embed = discord.Embed(
+        total_commands = sum(
+            data["commands"].count("`/") for data in CATEGORIES.values()
+        )
+
+        embed = branded_embed(
+            self.bot,
             title="🌟 Astrix V2",
-            description="Bot Discord đa chức năng",
-            color=discord.Color.blurple()
+            description=(
+                "Bot Discord đa chức năng — quản trị, chào mừng thành viên, "
+                "auto-mod, bình chọn, giveaway và nhắc nhở.\n\n"
+                f"📦 **{total_commands} lệnh** trong **{len(CATEGORIES)} danh mục**.\n"
+                "👇 Chọn một danh mục bên dưới để xem chi tiết."
+            )
         )
 
-        embed.add_field(
-            name="🛠️ Tiện ích",
-            value=(
-                "`/ping` — Kiểm tra bot\n"
-                "`/userinfo` — Thông tin người dùng\n"
-                "`/avatar` — Xem avatar\n"
-                "`/serverinfo` — Thông tin server"
-            ),
-            inline=False
-        )
+        if self.bot.user:
+            embed.set_thumbnail(url=self.bot.user.display_avatar.url)
 
-        embed.add_field(
-            name="🛡️ Quản trị",
-            value=(
-                "`/clear` — Xóa tin nhắn\n"
-                "`/kick` — Yêu cầu kick thành viên\n"
-                "`/ban` — Ban thành viên\n"
-                "`/mute` — Timeout thành viên\n"
-                "`/unmute` — Gỡ timeout\n"
-                "`/warn` — Cảnh cáo thành viên\n"
-                "`/warnings` — Xem cảnh cáo của thành viên\n"
-                "`/delwarn` — Xóa một cảnh cáo\n"
-                "`/clearwarnings` — Xóa toàn bộ cảnh cáo"
-            ),
-            inline=False
-        )
+        view = HelpView(self.bot)
 
-        embed.add_field(
-            name="📋 Hệ thống",
-            value=(
-                "`/setlog` — Đặt kênh log\n"
-                "`/viewlog` — Xem kênh log hiện tại"
-            ),
-            inline=False
-        )
-
-        embed.add_field(
-            name="👋 Welcome / Auto-role",
-            value=(
-                "`/setwelcome` — Đặt lời chào mừng\n"
-                "`/disablewelcome` — Tắt lời chào mừng\n"
-                "`/setgoodbye` — Đặt lời tạm biệt\n"
-                "`/disablegoodbye` — Tắt lời tạm biệt\n"
-                "`/setautorole` — Tự động gán role\n"
-                "`/disableautorole` — Tắt auto-role"
-            ),
-            inline=False
-        )
-
-        embed.add_field(
-            name="🛡️ Auto-Moderation",
-            value=(
-                "`/automod enable|disable` — Bật/tắt lọc tự động\n"
-                "`/automod blocklinks` — Chặn link/invite\n"
-                "`/automod addword|removeword` — Quản lý từ cấm\n"
-                "`/automod status` — Xem trạng thái"
-            ),
-            inline=False
-        )
-
-        embed.add_field(
-            name="🎉 Poll / Giveaway",
-            value=(
-                "`/poll` — Tạo bình chọn\n"
-                "`/giveaway` — Tạo giveaway"
-            ),
-            inline=False
-        )
-
-        embed.add_field(
-            name="⏰ Nhắc nhở",
-            value=(
-                "`/remind` — Đặt nhắc nhở\n"
-                "`/reminders` — Xem danh sách nhắc nhở\n"
-                "`/delremind` — Hủy nhắc nhở"
-            ),
-            inline=False
-        )
-
-        embed.set_footer(
-            text="Astrix V2 • Multi-Purpose Discord Bot"
-        )
-
-        await interaction.response.send_message(
-            embed=embed
-        )
+        await interaction.response.send_message(embed=embed, view=view)
 
 
 async def setup(bot):

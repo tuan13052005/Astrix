@@ -1,11 +1,12 @@
 import os
 import json
 import logging
+import itertools
 from logging.handlers import RotatingFileHandler
 
 import discord
 from discord import app_commands
-from discord.ext import commands
+from discord.ext import commands, tasks
 from dotenv import load_dotenv
 
 from utils.keep_alive import keep_alive
@@ -167,6 +168,49 @@ class Astrix(commands.Bot):
             log.info(
                 f"✅ Đã đồng bộ {len(synced)} Slash Commands (toàn cục)."
             )
+
+        self.rotate_presence.start()
+
+    # =====================================================
+    # TRẠNG THÁI HOẠT ĐỘNG (PRESENCE) LUÂN PHIÊN
+    # =====================================================
+
+    @tasks.loop(seconds=20)
+    async def rotate_presence(self):
+
+        guild_count = len(self.guilds)
+        member_count = sum(g.member_count or 0 for g in self.guilds)
+
+        statuses = [
+            discord.Activity(
+                type=discord.ActivityType.watching,
+                name=f"{guild_count} server | /help"
+            ),
+            discord.Activity(
+                type=discord.ActivityType.listening,
+                name="/help để xem lệnh"
+            ),
+            discord.Activity(
+                type=discord.ActivityType.watching,
+                name=f"{member_count} thành viên"
+            ),
+        ]
+
+        activity = next(self._presence_cycle)
+        await self.change_presence(
+            status=discord.Status.online,
+            activity=statuses[activity]
+        )
+
+    @rotate_presence.before_loop
+    async def before_rotate_presence(self):
+        await self.wait_until_ready()
+        self._presence_cycle = itertools.cycle(range(3))
+
+    @rotate_presence.error
+    async def rotate_presence_error(self, error: Exception):
+        log.exception(f"Lỗi khi cập nhật presence, đang khởi động lại: {error}")
+        self.rotate_presence.restart()
 
 
 # =========================================================

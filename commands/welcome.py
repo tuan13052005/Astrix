@@ -3,6 +3,7 @@ from discord import app_commands
 from discord.ext import commands
 
 from utils import checks
+from utils.embeds import branded_embed
 from utils.data_manager import (
     get_guild_settings,
     set_welcome,
@@ -45,7 +46,8 @@ class Welcome(commands.Cog):
             channel = member.guild.get_channel(welcome["channel_id"])
 
             if isinstance(channel, discord.TextChannel):
-                embed = discord.Embed(
+                embed = branded_embed(
+                    self.bot,
                     title="👋 Chào mừng thành viên mới!",
                     description=_format_template(welcome["message"], member),
                     color=discord.Color.green()
@@ -90,7 +92,8 @@ class Welcome(commands.Cog):
         if not isinstance(channel, discord.TextChannel):
             return
 
-        embed = discord.Embed(
+        embed = branded_embed(
+            self.bot,
             title="👋 Tạm biệt!",
             description=_format_template(goodbye["message"], member),
             color=discord.Color.red()

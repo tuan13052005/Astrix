@@ -1,5 +1,6 @@
 import discord
 from discord import app_commands
+from utils.embeds import branded_embed
 from discord.ext import commands
 
 
@@ -109,7 +110,8 @@ class Poll(commands.Cog):
             if option
         ]
 
-        embed = discord.Embed(
+        embed = branded_embed(
+            self.bot,
             title=f"📊 {question}",
             color=discord.Color.blurple()
         )

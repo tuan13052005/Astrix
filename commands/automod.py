@@ -6,6 +6,7 @@ from discord.ext import commands
 
 from utils import checks
 from utils.logger import send_log
+from utils.embeds import branded_embed
 from utils.data_manager import (
     get_automod_settings,
     set_automod_enabled,
@@ -197,7 +198,8 @@ class AutoMod(commands.Cog):
 
         settings = get_automod_settings(interaction.guild.id)
 
-        embed = discord.Embed(
+        embed = branded_embed(
+            self.bot,
             title="🛡️ Trạng thái Auto-Moderation",
             color=discord.Color.blurple()
         )

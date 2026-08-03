@@ -2,6 +2,9 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 
+from utils import checks
+from utils.embeds import branded_embed
+
 
 class Server(commands.Cog):
 
@@ -16,26 +19,18 @@ class Server(commands.Cog):
         name="serverinfo",
         description="Xem thông tin server"
     )
+    @checks.guild_only()
     async def serverinfo(
         self,
         interaction: discord.Interaction
     ):
 
-        if interaction.guild is None:
-
-            await interaction.response.send_message(
-                "❌ Lệnh này chỉ được sử dụng trong server.",
-                ephemeral=True
-            )
-
-            return
-
         guild = interaction.guild
 
-        embed = discord.Embed(
+        embed = branded_embed(
+            self.bot,
             title=f"🏠 {guild.name}",
-            description="Thông tin máy chủ Discord",
-            color=discord.Color.blurple()
+            description="Thông tin máy chủ Discord"
         )
 
         if guild.icon:
@@ -59,8 +54,13 @@ class Server(commands.Cog):
         embed.add_field(name="🔊 Kênh thoại", value=f"`{voice_channels}`", inline=True)
         embed.add_field(name="📁 Danh mục", value=f"`{categories}`", inline=True)
         embed.add_field(name="🎭 Vai trò", value=f"`{len(guild.roles)}`", inline=True)
-        embed.add_field(name="🚀 Boost", value=f"`{guild.premium_subscription_count}`", inline=True)
-        embed.add_field(name="⭐ Level Boost", value=f"`{guild.premium_tier}`", inline=True)
+
+        boost_badges = "🚀" * min(guild.premium_tier, 3) or "—"
+        embed.add_field(
+            name="🚀 Boost",
+            value=f"`{guild.premium_subscription_count}` ({boost_badges} Cấp {guild.premium_tier})",
+            inline=True
+        )
 
         verification_names = {
             discord.VerificationLevel.none: "Không",
@@ -79,7 +79,8 @@ class Server(commands.Cog):
             inline=False
         )
 
-        embed.set_footer(text=f"Astrix V2 • {guild.name}")
+        if guild.banner:
+            embed.set_image(url=guild.banner.url)
 
         await interaction.response.send_message(embed=embed)
 

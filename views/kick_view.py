@@ -1,6 +1,7 @@
 import discord
 
 from utils.logger import send_log
+from utils.embeds import branded_embed
 
 
 class KickApprovalView(discord.ui.View):
@@ -139,7 +140,8 @@ class KickApprovalView(discord.ui.View):
         # THÔNG BÁO ĐÃ DUYỆT
         # -------------------------------------------------
 
-        embed = discord.Embed(
+        embed = branded_embed(
+            interaction.client,
             title="✅ Kick đã được duyệt",
             color=discord.Color.green()
         )
@@ -207,7 +209,8 @@ class KickApprovalView(discord.ui.View):
         if not await self.check_owner(interaction):
             return
 
-        embed = discord.Embed(
+        embed = branded_embed(
+            interaction.client,
             title="❌ Yêu cầu Kick bị từ chối",
             color=discord.Color.red()
         )

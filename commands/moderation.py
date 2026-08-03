@@ -6,6 +6,7 @@ from discord.ext import commands
 from views.kick_view import KickApprovalView
 from utils import checks
 from utils.logger import send_log
+from utils.embeds import branded_embed
 from utils.data_manager import (
     add_warning,
     get_warnings,
@@ -113,7 +114,8 @@ class Moderation(commands.Cog):
             )
             return
 
-        embed = discord.Embed(
+        embed = branded_embed(
+            self.bot,
             title="⚠️ Yêu cầu Kick Thành Viên",
             color=discord.Color.orange()
         )
@@ -315,7 +317,8 @@ class Moderation(commands.Cog):
             )
             return
 
-        embed = discord.Embed(
+        embed = branded_embed(
+            self.bot,
             title="🔇 Thành viên đã bị mute",
             color=discord.Color.orange()
         )
@@ -424,7 +427,8 @@ class Moderation(commands.Cog):
 
         total = len(get_warnings(interaction.guild.id, member.id))
 
-        embed = discord.Embed(
+        embed = branded_embed(
+            self.bot,
             title="⚠️ Cảnh cáo thành viên",
             color=discord.Color.yellow()
         )
@@ -472,7 +476,8 @@ class Moderation(commands.Cog):
 
         entries = get_warnings(interaction.guild.id, member.id)
 
-        embed = discord.Embed(
+        embed = branded_embed(
+            self.bot,
             title=f"📋 Cảnh cáo của {member.display_name}",
             color=discord.Color.yellow()
         )
