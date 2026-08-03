@@ -11,6 +11,14 @@ Quyền bấm nút được kiểm tra dựa theo vai trò của người bấm
 View dùng timeout=None + custom_id cố định nên vẫn hoạt động
 sau khi bot restart, miễn là được đăng ký lại qua bot.add_view()
 (đã làm trong commands/music.py -> Music.__init__).
+
+LƯU Ý QUAN TRỌNG: hàm cập nhật embed bảng điều khiển được đặt tên
+`_refresh_panel` (KHÔNG phải `_refresh`). `discord.ui.View` (class
+gốc của discord.py) đã có sẵn một phương thức nội bộ tên `_refresh`
+dùng để đồng bộ trạng thái component sau khi edit — nếu đặt trùng
+tên, discord.py sẽ gọi nhầm vào hàm của mình với chữ ký khác, gây
+lỗi `TypeError: _refresh() missing 1 required positional argument`.
+Vì vậy KHÔNG được đổi tên `_refresh_panel` lại thành `_refresh`.
 """
 
 import discord
@@ -128,7 +136,7 @@ class MusicControlView(discord.ui.View):
 
         return self.manager.get_state(interaction.guild.id)
 
-    async def _refresh(self, interaction: discord.Interaction, state):
+    async def _refresh_panel(self, interaction: discord.Interaction, state):
         embed = build_panel_embed(interaction.client, state)
         await interaction.response.edit_message(embed=embed, view=self)
 
@@ -162,7 +170,7 @@ class MusicControlView(discord.ui.View):
             )
             return
 
-        await self._refresh(interaction, state)
+        await self._refresh_panel(interaction, state)
 
     @discord.ui.button(
         emoji="⏭️", style=discord.ButtonStyle.secondary,
@@ -240,7 +248,7 @@ class MusicControlView(discord.ui.View):
             return
 
         state.shuffle()
-        await self._refresh(interaction, state)
+        await self._refresh_panel(interaction, state)
 
     # =====================================================
     # HÀNG 2 — ÂM LƯỢNG / LẶP / HÀNG ĐỢI
@@ -263,7 +271,7 @@ class MusicControlView(discord.ui.View):
         ):
             state.voice_client.source.volume = state.volume
 
-        await self._refresh(interaction, state)
+        await self._refresh_panel(interaction, state)
 
     @discord.ui.button(
         emoji="🔊", label="+10%", style=discord.ButtonStyle.secondary,
@@ -282,7 +290,7 @@ class MusicControlView(discord.ui.View):
         ):
             state.voice_client.source.volume = state.volume
 
-        await self._refresh(interaction, state)
+        await self._refresh_panel(interaction, state)
 
     @discord.ui.button(
         emoji="🔁", label="Lặp", style=discord.ButtonStyle.secondary,
@@ -297,7 +305,7 @@ class MusicControlView(discord.ui.View):
         order = ["off", "track", "queue"]
         state.loop_mode = order[(order.index(state.loop_mode) + 1) % len(order)]
 
-        await self._refresh(interaction, state)
+        await self._refresh_panel(interaction, state)
 
     @discord.ui.button(
         label="📋 Hàng đợi", style=discord.ButtonStyle.secondary,
