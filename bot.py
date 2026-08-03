@@ -1,10 +1,14 @@
 import os
 import json
+import logging
+from logging.handlers import RotatingFileHandler
 
 import discord
 from discord import app_commands
 from discord.ext import commands
 from dotenv import load_dotenv
+
+from utils.keep_alive import keep_alive
 
 
 # =========================================================
@@ -19,6 +23,12 @@ if not TOKEN:
     raise RuntimeError(
         "❌ Không tìm thấy DISCORD_TOKEN trong file .env"
     )
+
+# Tùy chọn: đặt DEV_GUILD_ID trong .env để đồng bộ slash command
+# NGAY LẬP TỨC cho một server cụ thể (phục vụ test khi phát triển).
+# Nếu để trống, bot sẽ đồng bộ TOÀN CỤC (global) — Discord có thể
+# mất tới khoảng 1 giờ để lệnh mới hiện ra trên client.
+DEV_GUILD_ID = os.getenv("DEV_GUILD_ID")
 
 
 # =========================================================
@@ -47,6 +57,36 @@ except json.JSONDecodeError:
 
 
 # =========================================================
+# LOGGING (GHI RA FILE + CONSOLE — DỄ TRA LỖI KHI CHẠY 24/24)
+# =========================================================
+
+os.makedirs("data", exist_ok=True)
+
+log_formatter = logging.Formatter(
+    "[%(asctime)s] [%(levelname)s] %(name)s: %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S"
+)
+
+file_handler = RotatingFileHandler(
+    filename="data/bot.log",
+    encoding="utf-8",
+    maxBytes=5 * 1024 * 1024,  # 5MB / file
+    backupCount=3
+)
+file_handler.setFormatter(log_formatter)
+
+console_handler = logging.StreamHandler()
+console_handler.setFormatter(log_formatter)
+
+root_logger = logging.getLogger()
+root_logger.setLevel(logging.INFO)
+root_logger.addHandler(file_handler)
+root_logger.addHandler(console_handler)
+
+log = logging.getLogger("astrix")
+
+
+# =========================================================
 # INTENTS
 # =========================================================
 
@@ -69,6 +109,11 @@ EXTENSIONS = [
     "commands.server",
     "commands.moderation",
     "commands.system",
+    "commands.welcome",
+    "commands.automod",
+    "commands.poll",
+    "commands.giveaway",
+    "commands.reminder",
 ]
 
 
@@ -91,22 +136,37 @@ class Astrix(commands.Bot):
 
     async def setup_hook(self):
 
-        print("📦 Đang load commands...")
+        log.info("📦 Đang load commands...")
 
         for extension in EXTENSIONS:
             await self.load_extension(extension)
-            print(f"   ↳ Đã load: {extension}")
+            log.info(f"   ↳ Đã load: {extension}")
 
-        print("✅ Đã load toàn bộ commands!")
+        log.info("✅ Đã load toàn bộ commands!")
 
         # Sync slash commands
-        print("🔄 Đang đồng bộ Slash Commands...")
+        log.info("🔄 Đang đồng bộ Slash Commands...")
 
-        synced = await self.tree.sync()
+        if DEV_GUILD_ID:
+            # Đồng bộ theo guild: gần như tức thì, dùng khi phát triển/test.
+            guild_obj = discord.Object(id=int(DEV_GUILD_ID))
+            self.tree.copy_global_to(guild=guild_obj)
+            synced = await self.tree.sync(guild=guild_obj)
 
-        print(
-            f"✅ Đã đồng bộ {len(synced)} Slash Commands!"
-        )
+            log.info(
+                f"✅ Đã đồng bộ {len(synced)} Slash Commands "
+                f"cho guild {DEV_GUILD_ID} (tức thì)."
+            )
+
+        else:
+            # Đồng bộ toàn cục: dùng khi phát hành chính thức.
+            # Lưu ý: Discord có thể mất tới ~1 giờ để lệnh mới
+            # hiện ra trên client của người dùng.
+            synced = await self.tree.sync()
+
+            log.info(
+                f"✅ Đã đồng bộ {len(synced)} Slash Commands (toàn cục)."
+            )
 
 
 # =========================================================
@@ -144,7 +204,7 @@ async def on_app_command_error(
         message = "❌ Astrix thiếu quyền cần thiết để thực hiện lệnh này."
 
     else:
-        print(f"❌ App Command Error: {error}")
+        log.exception(f"App Command Error: {error}")
         message = "❌ Đã xảy ra lỗi không xác định khi chạy lệnh."
 
     try:
@@ -164,27 +224,45 @@ async def on_app_command_error(
 @bot.event
 async def on_ready():
 
-    print()
-    print("=" * 55)
-    print("🚀 ASTRIX V2 ĐÃ ONLINE!")
-    print("=" * 55)
+    log.info("=" * 55)
+    log.info("🚀 ASTRIX V2 ĐÃ ONLINE!")
+    log.info("=" * 55)
 
-    print(f"🤖 Bot       : {bot.user}")
-    print(f"🆔 ID        : {bot.user.id}")
-    print(f"🌐 Servers   : {len(bot.guilds)}")
-    print(
-        f"📦 Version   : "
-        f"{config.get('version', 'Unknown')}"
-    )
+    log.info(f"🤖 Bot       : {bot.user}")
+    log.info(f"🆔 ID        : {bot.user.id}")
+    log.info(f"🌐 Servers   : {len(bot.guilds)}")
+    log.info(f"📦 Version   : {config.get('version', 'Unknown')}")
 
-    print("=" * 55)
-    print("⚡ Astrix đang hoạt động!")
-    print("=" * 55)
-    print()
+    log.info("=" * 55)
+    log.info("⚡ Astrix đang hoạt động!")
+    log.info("=" * 55)
 
 
 # =========================================================
-# BOT ERROR
+# THEO DÕI KẾT NỐI (HỮU ÍCH KHI CHẠY 24/24)
+# =========================================================
+
+@bot.event
+async def on_disconnect():
+    log.warning("⚠️ Mất kết nối tới Discord — đang thử kết nối lại...")
+
+
+@bot.event
+async def on_resumed():
+    log.info("🔄 Đã kết nối lại với Discord thành công.")
+
+
+# =========================================================
+# BẮT LỖI KHÔNG XÁC ĐỊNH TRONG EVENT (KHÔNG LÀM SẬP BOT)
+# =========================================================
+
+@bot.event
+async def on_error(event_method, *args, **kwargs):
+    log.exception(f"Lỗi không xác định trong sự kiện '{event_method}'")
+
+
+# =========================================================
+# BOT ERROR (PREFIX COMMAND — KHÔNG DÙNG NHƯNG GIỮ ĐỂ AN TOÀN)
 # =========================================================
 
 @bot.event
@@ -192,10 +270,7 @@ async def on_command_error(
     ctx,
     error
 ):
-
-    print(
-        f"❌ Command Error: {error}"
-    )
+    log.exception(f"Command Error: {error}")
 
 
 # =========================================================
@@ -204,21 +279,18 @@ async def on_command_error(
 
 if __name__ == "__main__":
 
+    # Web server nhỏ để nền tảng cloud (Render/Replit) nhận diện
+    # tiến trình đang "sống" và để UptimeRobot ping giữ bot thức.
+    keep_alive()
+
     try:
 
-        bot.run(TOKEN)
+        bot.run(TOKEN, log_handler=None)
 
     except discord.LoginFailure:
 
-        print()
-        print("❌ TOKEN KHÔNG HỢP LỆ!")
-        print(
-            "Hãy kiểm tra DISCORD_TOKEN trong .env"
-        )
+        log.error("❌ TOKEN KHÔNG HỢP LỆ! Hãy kiểm tra DISCORD_TOKEN trong .env")
 
-    except Exception as error:
+    except Exception:
 
-        print()
-        print(
-            f"❌ Astrix gặp lỗi: {error}"
-        )
+        log.exception("❌ Astrix gặp lỗi nghiêm trọng khi khởi động")
