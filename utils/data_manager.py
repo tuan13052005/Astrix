@@ -378,3 +378,23 @@ def mark_giveaway_ended(message_id: int) -> None:
             entry["ended"] = True
             _save_json(GIVEAWAYS_FILE, data)
             return
+
+
+# =========================================================
+# DJ ROLE (GIỚI HẠN QUYỀN DÙNG LỆNH NHẠC)
+# =========================================================
+
+def get_dj_role_id(guild_id: int) -> int | None:
+    return get_guild_settings(guild_id).get("dj_role_id")
+
+
+def set_dj_role_id(guild_id: int, role_id: int) -> None:
+    set_guild_setting(guild_id, "dj_role_id", role_id)
+
+
+def disable_dj_role(guild_id: int) -> None:
+    settings = get_guild_settings(guild_id)
+    settings.pop("dj_role_id", None)
+    data = _load_json(GUILD_SETTINGS_FILE)
+    data[str(guild_id)] = settings
+    _save_json(GUILD_SETTINGS_FILE, data)

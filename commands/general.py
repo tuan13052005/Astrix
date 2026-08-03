@@ -87,6 +87,28 @@ CATEGORIES = {
             "`/delremind` — Hủy nhắc nhở"
         )
     },
+    "music": {
+        "label": "🎵 Nhạc",
+        "emoji": "🎵",
+        "description": "Nghe nhạc trong kênh thoại, hàng đợi, lặp lại",
+        "commands": (
+            "`/join` — Vào kênh thoại\n"
+            "`/leave` — Rời kênh thoại\n"
+            "`/play` — Phát nhạc theo tên hoặc link\n"
+            "`/skip` — Bỏ qua bài hát\n"
+            "`/pause` — Tạm dừng\n"
+            "`/resume` — Tiếp tục phát\n"
+            "`/stop` — Dừng nhạc & rời kênh thoại\n"
+            "`/queue` — Xem hàng đợi\n"
+            "`/nowplaying` — Bài đang phát\n"
+            "`/volume` — Chỉnh âm lượng\n"
+            "`/shuffle` — Xáo trộn hàng đợi\n"
+            "`/loop` — Chế độ lặp lại\n"
+            "`/setdjrole` — Giới hạn lệnh nhạc theo role\n"
+            "`/disablemusicrole` — Gỡ giới hạn role\n"
+            "`/djrole` — Xem role DJ hiện tại"
+        )
+    },
 }
 
 
@@ -189,7 +211,7 @@ class General(commands.Cog):
             title="🌟 Astrix V2",
             description=(
                 "Bot Discord đa chức năng — quản trị, chào mừng thành viên, "
-                "auto-mod, bình chọn, giveaway và nhắc nhở.\n\n"
+                "auto-mod, bình chọn, giveaway, nhắc nhở và nghe nhạc.\n\n"
                 f"📦 **{total_commands} lệnh** trong **{len(CATEGORIES)} danh mục**.\n"
                 "👇 Chọn một danh mục bên dưới để xem chi tiết."
             )

@@ -115,6 +115,7 @@ EXTENSIONS = [
     "commands.poll",
     "commands.giveaway",
     "commands.reminder",
+    "commands.music",
 ]
 
 

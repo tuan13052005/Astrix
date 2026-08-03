@@ -1,0 +1,6 @@
+# Đặt file này ở THƯ MỤC GỐC của repo (ngang hàng với bot.py).
+# Railway (và các nền tảng dùng Nixpacks) sẽ tự đọc file này khi build
+# và cài thêm gói hệ thống ffmpeg trước khi chạy `pip install`.
+
+[phases.setup]
+nixPkgs = ["ffmpeg"]

@@ -1,6 +1,8 @@
 import discord
 from discord import app_commands
 
+from utils.data_manager import get_dj_role_id
+
 
 # =========================================================
 # CHỈ CHO PHÉP DÙNG TRONG SERVER
@@ -62,6 +64,50 @@ def has_permissions(**perms: bool):
             return False
 
         return True
+
+    return app_commands.check(predicate)
+
+
+# =========================================================
+# KIỂM TRA ROLE "DJ" (DÙNG CHO LỆNH NHẠC)
+# =========================================================
+
+def dj_only():
+    """
+    Decorator: giới hạn lệnh nhạc theo role DJ đã cấu hình qua
+    /setdjrole. Nếu server CHƯA cấu hình role DJ nào thì mở cho
+    tất cả mọi người (hành vi mặc định, không phá vỡ trải nghiệm
+    cũ). Admin luôn được phép, bất kể có role DJ hay không.
+    """
+
+    async def predicate(interaction: discord.Interaction) -> bool:
+
+        if not isinstance(interaction.user, discord.Member):
+            return False
+
+        if interaction.guild is None:
+            return True  # guild_only() đã xử lý riêng trường hợp này
+
+        if interaction.user.guild_permissions.administrator:
+            return True
+
+        role_id = get_dj_role_id(interaction.guild.id)
+
+        # Chưa cấu hình DJ role -> mở cho tất cả
+        if role_id is None:
+            return True
+
+        if any(role.id == role_id for role in interaction.user.roles):
+            return True
+
+        role = interaction.guild.get_role(role_id)
+        role_text = role.mention if role else "DJ (role đã bị xóa)"
+
+        await interaction.response.send_message(
+            f"❌ Bạn cần role {role_text} để sử dụng lệnh nhạc này.",
+            ephemeral=True
+        )
+        return False
 
     return app_commands.check(predicate)
 
