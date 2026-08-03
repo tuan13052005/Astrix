@@ -25,6 +25,11 @@ except ImportError:
 
 log = logging.getLogger("astrix.music")
 
+if yt_dlp is not None:
+    log.info(f"📦 yt-dlp version đang chạy: {yt_dlp.version.__version__}")
+else:
+    log.error("❌ yt-dlp chưa được cài đặt!")
+
 
 # =========================================================
 # CẤU HÌNH YT-DLP / FFMPEG
@@ -75,39 +80,30 @@ MAX_PLAYLIST_ITEMS = 50
 
 YDL_OPTIONS = {
     "format": "bestaudio/best",
-    # False = cho phép lấy nguyên playlist nếu query là link playlist.
-    # Nếu query là link 1 video hoặc là từ khóa tìm kiếm thì vẫn
-    # chỉ trả về 1 kết quả như bình thường.
     "noplaylist": False,
     "playlistend": MAX_PLAYLIST_ITEMS,
     "quiet": True,
     "no_warnings": True,
     "default_search": "ytsearch",
     "source_address": "0.0.0.0",
+    "extractor_args": {"youtube": {"player_client": ["android", "web"]}},
 }
 
 if COOKIES_FILE:
     YDL_OPTIONS["cookiefile"] = COOKIES_FILE
-
-    # Log chi tiết để debug mà không cần vào Render Shell: kiểm tra
-    # xem file có thực sự có nội dung hợp lệ hay bị rỗng/lỗi.
     try:
         with open(COOKIES_FILE, "r", encoding="utf-8", errors="replace") as f:
             _lines = f.readlines()
-
         _non_comment_lines = [
             line for line in _lines
             if line.strip() and not line.strip().startswith("#")
         ]
-
         log.info(
             f"🍪 Đang dùng cookies YouTube từ: {COOKIES_FILE} "
             f"({len(_lines)} dòng tổng, {len(_non_comment_lines)} dòng cookie thật)"
         )
-
         if _lines:
             log.info(f"🍪 Dòng đầu tiên: {_lines[0].strip()!r}")
-
         if not _non_comment_lines:
             log.warning(
                 "⚠️ cookies.txt tồn tại nhưng KHÔNG có dòng cookie nào hợp lệ "
@@ -123,6 +119,8 @@ else:
         "'Sign in to confirm you're not a bot', hãy thêm Secret File "
         "cookies.txt trên Render (hoặc data/cookies.txt khi chạy local/VPS)."
     )
+
+log.info(f"🍪 COOKIES_FILE cuối cùng đang dùng: {COOKIES_FILE}")
 
 FFMPEG_OPTIONS = {
     "before_options": (
