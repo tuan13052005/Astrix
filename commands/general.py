@@ -90,21 +90,24 @@ CATEGORIES = {
     "music": {
         "label": "🎵 Nhạc",
         "emoji": "🎵",
-        "description": "Nghe nhạc trong kênh thoại, hàng đợi, lặp lại",
+        "description": "Nghe nhạc trong kênh thoại, hàng đợi, playlist, lặp lại",
         "commands": (
             "`/join` — Vào kênh thoại\n"
             "`/leave` — Rời kênh thoại\n"
-            "`/play` — Phát nhạc theo tên hoặc link\n"
+            "`/play` — Phát nhạc theo tên, link video, hoặc link playlist "
+            "(tự thêm nguyên playlist vào hàng đợi)\n"
+            "`/musicpanel` — Hiện bảng điều khiển nhạc (nút bấm "
+            "play/pause, skip, stop, xáo trộn, âm lượng, lặp, hàng đợi)\n"
             "`/skip` — Bỏ qua bài hát\n"
             "`/pause` — Tạm dừng\n"
             "`/resume` — Tiếp tục phát\n"
-            "`/stop` — Dừng nhạc & rời kênh thoại\n"
+            "`/stop` — Dừng nhạc, xóa hàng đợi & rời kênh thoại\n"
             "`/queue` — Xem hàng đợi\n"
             "`/nowplaying` — Bài đang phát\n"
-            "`/volume` — Chỉnh âm lượng\n"
+            "`/volume` — Chỉnh âm lượng (0–200%)\n"
             "`/shuffle` — Xáo trộn hàng đợi\n"
-            "`/loop` — Chế độ lặp lại\n"
-            "`/setdjrole` — Giới hạn lệnh nhạc theo role\n"
+            "`/loop` — Chế độ lặp lại (tắt / bài hiện tại / toàn bộ hàng đợi)\n"
+            "`/setdjrole` — Giới hạn lệnh nhạc & nút bấm panel theo role\n"
             "`/disablemusicrole` — Gỡ giới hạn role\n"
             "`/djrole` — Xem role DJ hiện tại"
         )
