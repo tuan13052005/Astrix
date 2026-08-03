@@ -6,6 +6,7 @@ Quản lý trạng thái phát nhạc cho từng server (guild):
 - Bảng điều khiển (panel) hiển thị trạng thái + nút bấm
 - Trích xuất thông tin/luồng audio qua yt-dlp (chạy trong executor
   để không chặn event loop chính của bot)
+- Hỗ trợ phát nguyên playlist khi paste link playlist YouTube
 """
 
 import asyncio
@@ -31,9 +32,17 @@ log = logging.getLogger("astrix.music")
 
 COOKIES_FILE = os.path.join("data", "cookies.txt")
 
+# Giới hạn tối đa số bài lấy từ 1 playlist, tránh treo lâu hoặc
+# nhồi hàng đợi quá tải nếu ai đó paste playlist vài nghìn bài.
+MAX_PLAYLIST_ITEMS = 50
+
 YDL_OPTIONS = {
     "format": "bestaudio/best",
-    "noplaylist": True,
+    # False = cho phép lấy nguyên playlist nếu query là link playlist.
+    # Nếu query là link 1 video hoặc là từ khóa tìm kiếm thì vẫn
+    # chỉ trả về 1 kết quả như bình thường.
+    "noplaylist": False,
+    "playlistend": MAX_PLAYLIST_ITEMS,
     "quiet": True,
     "no_warnings": True,
     "default_search": "ytsearch",
@@ -103,10 +112,16 @@ class GuildMusicState:
         self.loop_mode: str = "off"
 
     # -----------------------------------------------------
-    # THÊM BÀI HÁT VÀO HÀNG ĐỢI (TÌM KIẾM QUA YT-DLP)
+    # THÊM BÀI HÁT / PLAYLIST VÀO HÀNG ĐỢI (QUA YT-DLP)
     # -----------------------------------------------------
 
-    async def add_track(self, query: str, requester: discord.Member) -> Track:
+    async def add_tracks(self, query: str, requester: discord.Member) -> list[Track]:
+        """
+        Trả về danh sách Track vừa thêm vào hàng đợi:
+        - Query là 1 video / từ khóa tìm kiếm -> list có 1 phần tử.
+        - Query là link playlist -> list có nhiều phần tử
+          (tối đa MAX_PLAYLIST_ITEMS bài).
+        """
 
         if yt_dlp is None:
             raise RuntimeError(
@@ -118,20 +133,25 @@ class GuildMusicState:
 
         def _extract():
             with yt_dlp.YoutubeDL(YDL_OPTIONS) as ydl:
-                info = ydl.extract_info(query, download=False)
-
-                if "entries" in info:
-                    # Kết quả tìm kiếm (ytsearch) -> lấy bản đầu tiên
-                    info = info["entries"][0]
-
-                return info
+                return ydl.extract_info(query, download=False)
 
         data = await loop.run_in_executor(None, _extract)
 
-        track = Track(data, requester)
-        self.queue.append(track)
+        if "entries" in data:
+            # Playlist HOẶC kết quả tìm kiếm (yt-dlp cũng bọc trong "entries")
+            raw_entries = data["entries"]
+        else:
+            raw_entries = [data]
 
-        return track
+        # Bỏ qua entry None (video trong playlist đã bị xóa/riêng tư)
+        tracks = [Track(entry, requester) for entry in raw_entries if entry]
+
+        if not tracks:
+            raise RuntimeError("Không tìm thấy video khả dụng nào.")
+
+        self.queue.extend(tracks)
+
+        return tracks
 
     # -----------------------------------------------------
     # PHÁT BÀI TIẾP THEO TRONG HÀNG ĐỢI
@@ -194,7 +214,6 @@ class GuildMusicState:
         embed = build_panel_embed(self.bot, self)
         view = MusicControlView(self.manager)
 
-        # Ưu tiên edit tin nhắn panel cũ để tránh spam kênh chat
         if self.panel_message is not None:
             try:
                 await self.panel_message.edit(embed=embed, view=view)

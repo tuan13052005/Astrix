@@ -152,25 +152,48 @@ class Music(commands.Cog):
         state.text_channel = interaction.channel
 
         try:
-            track = await state.add_track(query, interaction.user)
+            tracks = await state.add_tracks(query, interaction.user)
         except Exception as error:
             await interaction.followup.send(
                 f"❌ Không thể tìm/tải bài hát: `{error}`"
             )
             return
 
-        if state.voice_client.is_playing() or state.voice_client.is_paused():
-            await interaction.followup.send(
-                f"➕ Đã thêm vào hàng đợi: **{track.title}** "
-                f"(`{track.duration_text}`)",
-                ephemeral=True
-            )
+        is_playing_now = (
+            state.voice_client.is_playing() or state.voice_client.is_paused()
+        )
+
+        if len(tracks) == 1:
+            track = tracks[0]
+
+            if is_playing_now:
+                await interaction.followup.send(
+                    f"➕ Đã thêm vào hàng đợi: **{track.title}** "
+                    f"(`{track.duration_text}`)",
+                    ephemeral=True
+                )
+            else:
+                await interaction.followup.send(
+                    f"🎶 Đang chuẩn bị phát **{track.title}**...",
+                    ephemeral=True
+                )
+                await state.play_next()
+
         else:
-            await interaction.followup.send(
-                f"🎶 Đang chuẩn bị phát **{track.title}**...",
-                ephemeral=True
-            )
-            await state.play_next()
+            # -------- PLAYLIST: NHIỀU BÀI CÙNG LÚC --------
+            if is_playing_now:
+                await interaction.followup.send(
+                    f"➕ Đã thêm **{len(tracks)} bài** từ playlist "
+                    f"vào hàng đợi.",
+                    ephemeral=True
+                )
+            else:
+                await interaction.followup.send(
+                    f"🎶 Đã thêm **{len(tracks)} bài** từ playlist, "
+                    f"đang chuẩn bị phát...",
+                    ephemeral=True
+                )
+                await state.play_next()
 
     # =====================================================
     # /MUSICPANEL — GỌI BẢNG ĐIỀU KHIỂN
