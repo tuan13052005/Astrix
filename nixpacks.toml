@@ -3,4 +3,4 @@
 # và cài thêm gói hệ thống ffmpeg trước khi chạy `pip install`.
 
 [phases.setup]
-nixPkgs = ["ffmpeg"]
+nixPkgs = ["ffmpeg", "libopus"]

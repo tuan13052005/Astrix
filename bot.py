@@ -316,6 +316,22 @@ async def on_command_error(
     error
 ):
     log.exception(f"Command Error: {error}")
+    
+
+# =========================================================
+# LOAD OPUS (BẮT BUỘC CHO VOICE — discord.py trên Linux
+# thường không tự tìm thấy libopus, gây lỗi khi /join, /play)
+# =========================================================
+if not discord.opus.is_loaded():
+    for candidate in ("libopus.so.0", "libopus.so", "opus"):
+        try:
+            discord.opus.load_opus(candidate)
+            break
+        except OSError:
+            continue
+
+    if not discord.opus.is_loaded():
+        log.error("❌ Không load được thư viện Opus — lệnh voice sẽ lỗi!")
 
 
 # =========================================================
