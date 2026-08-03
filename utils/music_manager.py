@@ -63,16 +63,38 @@ YDL_OPTIONS = {
     "no_warnings": True,
     "default_search": "ytsearch",
     "source_address": "0.0.0.0",
-    "extractor_args": {
-        "youtube": {
-            "player_client": ["android", "web"],
-        }
-    },
 }
 
 if COOKIES_FILE:
     YDL_OPTIONS["cookiefile"] = COOKIES_FILE
-    log.info(f"🍪 Đang dùng cookies YouTube từ: {COOKIES_FILE}")
+
+    # Log chi tiết để debug mà không cần vào Render Shell: kiểm tra
+    # xem file có thực sự có nội dung hợp lệ hay bị rỗng/lỗi.
+    try:
+        with open(COOKIES_FILE, "r", encoding="utf-8", errors="replace") as f:
+            _lines = f.readlines()
+
+        _non_comment_lines = [
+            line for line in _lines
+            if line.strip() and not line.strip().startswith("#")
+        ]
+
+        log.info(
+            f"🍪 Đang dùng cookies YouTube từ: {COOKIES_FILE} "
+            f"({len(_lines)} dòng tổng, {len(_non_comment_lines)} dòng cookie thật)"
+        )
+
+        if _lines:
+            log.info(f"🍪 Dòng đầu tiên: {_lines[0].strip()!r}")
+
+        if not _non_comment_lines:
+            log.warning(
+                "⚠️ cookies.txt tồn tại nhưng KHÔNG có dòng cookie nào hợp lệ "
+                "(file rỗng hoặc chỉ có comment) — cần export lại và dán đúng "
+                "nội dung vào Secret File."
+            )
+    except Exception as e:
+        log.error(f"❌ Không đọc được cookies.txt dù file tồn tại: {e}")
 else:
     log.warning(
         "⚠️ Không tìm thấy cookies.txt (đã kiểm tra: "
