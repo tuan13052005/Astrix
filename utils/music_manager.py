@@ -10,6 +10,7 @@ Quản lý trạng thái phát nhạc cho từng server (guild):
 
 import asyncio
 import logging
+import os
 import random
 
 import discord
@@ -28,6 +29,8 @@ log = logging.getLogger("astrix.music")
 # CẤU HÌNH YT-DLP / FFMPEG
 # =========================================================
 
+COOKIES_FILE = os.path.join("data", "cookies.txt")
+
 YDL_OPTIONS = {
     "format": "bestaudio/best",
     "noplaylist": True,
@@ -35,7 +38,21 @@ YDL_OPTIONS = {
     "no_warnings": True,
     "default_search": "ytsearch",
     "source_address": "0.0.0.0",
+
+    # Giúp né lỗi "Sign in to confirm you're not a bot" khi chạy trên
+    # IP datacenter (Railway/Render/VPS...). Dùng client "android"/"ios"
+    # thay vì "web" thường ít bị chặn hơn.
+    "extractor_args": {
+        "youtube": {
+            "player_client": ["android", "web"],
+        }
+    },
 }
+
+# Nếu có file cookie xuất từ trình duyệt (data/cookies.txt), dùng nó
+# để xác thực như một trình duyệt thật -> giảm mạnh khả năng bị chặn.
+if os.path.exists(COOKIES_FILE):
+    YDL_OPTIONS["cookiefile"] = COOKIES_FILE
 
 FFMPEG_OPTIONS = {
     "before_options": (
