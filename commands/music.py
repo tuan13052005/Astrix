@@ -58,6 +58,11 @@ class Music(commands.Cog):
             )
             return
 
+        # channel.connect() có thể mất hơn 3 giây (giới hạn Discord cho
+        # phép trả lời interaction ban đầu) -> defer trước để tránh lỗi
+        # "Unknown interaction" (404) khi kết nối chậm.
+        await interaction.response.defer()
+
         state = self.manager.get_state(interaction.guild.id)
 
         try:
@@ -66,7 +71,7 @@ class Music(commands.Cog):
             else:
                 await state.voice_client.move_to(channel)
         except Exception as error:
-            await interaction.response.send_message(
+            await interaction.followup.send(
                 f"❌ Không thể kết nối kênh thoại.\n"
                 f"Chi tiết lỗi: `{type(error).__name__}: {error}`",
                 ephemeral=True
@@ -75,7 +80,7 @@ class Music(commands.Cog):
 
         state.text_channel = interaction.channel
 
-        await interaction.response.send_message(
+        await interaction.followup.send(
             f"🔊 Đã vào kênh thoại **{channel.name}**."
         )
 

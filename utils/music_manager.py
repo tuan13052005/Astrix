@@ -30,7 +30,23 @@ log = logging.getLogger("astrix.music")
 # CẤU HÌNH YT-DLP / FFMPEG
 # =========================================================
 
-COOKIES_FILE = os.path.join("data", "cookies.txt")
+# YouTube hay chặn IP của các nhà cung cấp cloud (Render, Fly.io, VPS...)
+# và yêu cầu xác thực bằng cookies trình duyệt thật. Bot sẽ tự dò file
+# cookies.txt ở 2 nơi, theo thứ tự ưu tiên:
+#   1. /etc/secrets/cookies.txt — nơi Render mount "Secret File" khi
+#      chạy service dạng Docker (xem Render Dashboard -> Environment
+#      -> Secret Files).
+#   2. data/cookies.txt — khi chạy local hoặc VPS tự quản lý, đặt file
+#      trực tiếp vào đây.
+_COOKIES_CANDIDATES = [
+    "/etc/secrets/cookies.txt",
+    os.path.join("data", "cookies.txt"),
+]
+
+COOKIES_FILE = next(
+    (path for path in _COOKIES_CANDIDATES if os.path.exists(path)),
+    None
+)
 
 # Giới hạn tối đa số bài lấy từ 1 playlist, tránh treo lâu hoặc
 # nhồi hàng đợi quá tải nếu ai đó paste playlist vài nghìn bài.
@@ -54,8 +70,16 @@ YDL_OPTIONS = {
     },
 }
 
-if os.path.exists(COOKIES_FILE):
+if COOKIES_FILE:
     YDL_OPTIONS["cookiefile"] = COOKIES_FILE
+    log.info(f"🍪 Đang dùng cookies YouTube từ: {COOKIES_FILE}")
+else:
+    log.warning(
+        "⚠️ Không tìm thấy cookies.txt (đã kiểm tra: "
+        f"{', '.join(_COOKIES_CANDIDATES)}). Nếu YouTube báo "
+        "'Sign in to confirm you're not a bot', hãy thêm Secret File "
+        "cookies.txt trên Render (hoặc data/cookies.txt khi chạy local/VPS)."
+    )
 
 FFMPEG_OPTIONS = {
     "before_options": (
