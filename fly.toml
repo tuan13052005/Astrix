@@ -1,0 +1,26 @@
+# Đặt file này ở THƯ MỤC GỐC của repo (ngang hàng với bot.py, Dockerfile).
+# Đổi "app" thành tên app Fly.io của bạn (fly launch sẽ tự điền nếu chưa có).
+
+app = "astrix-discord-bot"
+primary_region = "sin"  # Singapore — đổi theo khu vực gần bạn/server Discord
+
+[build]
+  # Dùng Dockerfile có sẵn trong repo (đã cài ffmpeg/opus/libsodium)
+
+[env]
+  PORT = "8080"
+
+# Astrix là worker nền (giữ kết nối WebSocket tới Discord), không phục vụ
+# HTTP request thật, nên KHÔNG cấu hình [http_service]/health check ép bot
+# phải "trả lời HTTP" — chỉ cần đúng 1 máy luôn chạy.
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "512mb"
+
+# Không dùng auto stop/start — bot cần chạy 24/7 để nhận sự kiện Discord
+[http_service]
+  internal_port = 8080
+  force_https = false
+  auto_stop_machines = false
+  auto_start_machines = true
+  min_machines_running = 1
