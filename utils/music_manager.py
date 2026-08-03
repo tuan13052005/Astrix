@@ -43,10 +43,31 @@ _COOKIES_CANDIDATES = [
     os.path.join("data", "cookies.txt"),
 ]
 
-COOKIES_FILE = next(
+_SOURCE_COOKIES_FILE = next(
     (path for path in _COOKIES_CANDIDATES if os.path.exists(path)),
     None
 )
+
+# yt-dlp không chỉ ĐỌC cookiefile — nó còn GHI LẠI file này sau khi
+# dùng (để lưu cookie mới được refresh trong lúc request). Nếu file
+# nằm ở /etc/secrets (Render Secret File) thì filesystem đó READ-ONLY,
+# nên phải copy sang data/ (writable) rồi trỏ yt-dlp vào bản copy đó,
+# chứ không dùng thẳng file gốc.
+COOKIES_FILE = None
+
+if _SOURCE_COOKIES_FILE is not None:
+    os.makedirs("data", exist_ok=True)
+    writable_path = os.path.join("data", "cookies.txt")
+
+    try:
+        if os.path.abspath(_SOURCE_COOKIES_FILE) != os.path.abspath(writable_path):
+            import shutil
+            shutil.copyfile(_SOURCE_COOKIES_FILE, writable_path)
+
+        COOKIES_FILE = writable_path
+    except OSError as e:
+        log.error(f"❌ Không copy được cookies.txt sang thư mục ghi được: {e}")
+        COOKIES_FILE = None
 
 # Giới hạn tối đa số bài lấy từ 1 playlist, tránh treo lâu hoặc
 # nhồi hàng đợi quá tải nếu ai đó paste playlist vài nghìn bài.
